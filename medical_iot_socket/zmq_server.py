@@ -2,17 +2,9 @@ import socketio
 import imagezmq
 import cv2
 import base64
-import zmq
 
 sio = socketio.Client()
-sio.connect('http://127.0.0.1:1234/')
-
-context = zmq.Context()
-skt = context.socket(zmq.REP)
-skt.bind("tcp://*:5556")
-deviceId = skt.recv()
-skt.send_string('id received')
-skt.close()
+sio.connect('http://127.0.0.1:5001/')
 
 # from . import wsgi_app
 imageHub = imagezmq.ImageHub(open_port='tcp://127.0.0.1:5555')
@@ -30,9 +22,8 @@ sio.sleep(1.0)
 while True:
     # receive RPi name and frame from the RPi and acknowledge
     # the receipt
-    (rpiName, frame) = imageHub.recv_image()
+    (deviceId, frame) = imageHub.recv_image()
     imageHub.send_reply(b'OK')
-
     # cv2.imshow('frame', frame)
 
     # out.write(frame)
@@ -43,14 +34,14 @@ while True:
     # print(jpg_as_text)
     # exit()
 
-    sio.emit('videostream', data=['data:image/jpg;base64,' + base64_message, int(deviceId)])
+    sio.emit('videostream', data=['data:image/jpg;base64,' + base64_message, deviceId])
 
     cv2.waitKey(1)
 
     # if a device is not in the last active dictionary then it means
     # that its a newly connected device
     # if rpiName not in lastActive.keys():
-    #	print("[INFO] receiving data from {}...".format(rpiName))
+    # 	print("[INFO] receiving data from {}...".format(rpiName))
     # record the last active time for the device from which we just
     # received a frame
     # lastActive[rpiName] = datetime.now()
