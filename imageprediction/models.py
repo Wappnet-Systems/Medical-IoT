@@ -1,8 +1,12 @@
+import datetime
+import secrets
+
 from django.contrib.auth.models import User
 from django.db import models
+
+from medical_iot.settings import UPLOAD_FOLDER
 from patients.models import Patient
 from testtype.models import TestType
-import datetime
 
 
 # Create your models here.
@@ -14,18 +18,16 @@ class SampleData(models.Model):
     ACEIT = 'ace_it'
     mode_selection = ((AUTOSCOPE, 'autoscope'), (ACEIT, 'ace_it'))
 
-    image_name = models.CharField(max_length=255)
-    result_length = models.IntegerField()
-    result = models.CharField(max_length=50)
+    mode = models.CharField(choices=mode_selection, max_length=10, default=ACEIT)
+    result = models.CharField(max_length=50, null=True)
     test_type = models.ForeignKey(TestType, on_delete=models.CASCADE)
     patient_id = models.ForeignKey(Patient, on_delete=models.CASCADE)
     user_id = models.ForeignKey(User, on_delete=models.CASCADE)
-    mode = models.CharField(choices=mode_selection, max_length=10)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "%s  %s" % (self.image_name, self.patient_id.patient_full_name)
+        return "%s" % (self.patient_id.patient_full_name)
 
     def testdetail(self):
         date_time_obj = datetime.datetime.strptime(str(self.created_at).split('+')[0], '%Y-%m-%d %H:%M:%S.%f')
@@ -53,3 +55,23 @@ class SampleData(models.Model):
             'patient_location': self.patient_id.patient_location,
             'patient_gender': self.patient_id.patient_gender,
         }
+
+
+class ImageData(models.Model):
+    class Meta:
+        db_table = 'image_table'
+
+    def fileunique(self, filename):
+        file, extension = secrets.token_hex(10)[1::3], filename.split('.')[1]
+        filename = "{}-{}.{}".format(file, str(datetime.datetime.now()).split(' ')[0][5:10], extension)
+        return '/'.join([UPLOAD_FOLDER, filename])
+
+    image_name = models.ImageField(upload_to=fileunique)
+    result_length = models.IntegerField()
+    result = models.CharField(max_length=50)
+    sample_data_id = models.ForeignKey(SampleData, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def img(self):
+        return "%s" % (str(self.image_name)[57:])

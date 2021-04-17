@@ -1,7 +1,5 @@
 import random
 import warnings
-import secrets
-from datetime import datetime, date
 
 # import tensorflow as tf
 import numpy as np
@@ -10,21 +8,16 @@ from rest_framework.authtoken.models import Token
 from rest_framework.decorators import APIView
 from rest_framework.response import Response
 
-from medical_iot.settings import UPLOAD_FOLDER
+from patients.models import Patient
+from testtype.models import TestType
 from .models import SampleData
-from .serializer import PredictionSerializer, ResultSerializer
+from .serializer import ResultSerializer, ImageDataSerializer, SampleDataSerializer
+
 # import tensorflow as tf
 #
 # tf.keras.backend.clear_session()
 # from tensorflow.keras.preprocessing.image import img_to_array
 # from tensorflow.keras.models import load_model
-from skimage.transform import resize
-from skimage.morphology import label
-import io
-from PIL import Image
-
-from patients.models import Patient
-from testtype.models import TestType
 
 warnings.filterwarnings('ignore', category=UserWarning, module='skimage')
 
@@ -77,30 +70,36 @@ sizes_test = []
 
 # Create your views here.
 class ImagePredection(APIView):
-    def fileunique(self, filename):
-        file, extension = secrets.token_hex(10)[1::3], filename.split('.')[1]
-        return "{}-{}.{}".format(file, str(datetime.now()).split(' ')[0][5:10], extension)
+    def modify_input_for_multiple_files(self, image, result_length, result, last_sample_id):
+        dict = {}
+        dict['image_name'] = image
+        dict['result_length'] = result_length
+        dict['result'] = result
+        dict['sample_data_id'] = last_sample_id
+        return dict
 
     def post(self, request):
         if request.data['mode'] == 'autoscope':
             if Patient.objects.filter(patient_email=request.data['patient_email']).exists():
                 if TestType.objects.filter(disease_name=request.data['disease_name']).exists():
-
                     # imgobj = ImageModel()
+                    images = dict((request.data).lists())['image']
                     my_token = request.META.get('HTTP_AUTHORIZATION').split()[1]
+                    user_id = Token.objects.get(key=my_token).user_id
+                    patient_id = Patient.objects.get(patient_email=request.data['patient_email']).id
+                    test_type = TestType.objects.get(disease_name=request.data['disease_name']).id
+                    data = {'mode': request.data['mode'], 'test_type': test_type, 'patient_id': patient_id,
+                            'user_id': user_id}
+                    serializer_class = SampleDataSerializer(data=data)
+                    if serializer_class.is_valid():
+                        serializer_class.save()
+                        last_sample_id = SampleData.objects.filter(mode=request.data['mode'], test_type=test_type,
+                                                                   patient_id=patient_id, user_id=user_id)[0].id
+                    else:
+                        return Response(serializer_class.errors, status=status.HTTP_400_BAD_REQUEST)
 
-                    file = request.FILES['image']
-                    user_id = {"user_id": Token.objects.get(key=my_token).user_id}
-                    patient_id = {"patient_id": Patient.objects.get(patient_email=request.data['patient_email']).id}
-                    test_type = {"test_type": TestType.objects.get(disease_name=request.data['disease_name']).id}
-                    unique_filename = self.fileunique(file.name)
-                    IMGSTO = '{}{}'.format(UPLOAD_FOLDER, unique_filename)
-
-                    image = file.read()
-                    f = open(IMGSTO, 'wb+')
-                    f.write(image)
-                    f.close()
-
+                    # file = request.FILES['image']
+                    # image = file.read()
                     # image = Image.open(io.BytesIO(image))
                     #
                     # image = imgobj.prepare_image(image, target=(512, 512))
@@ -125,36 +124,34 @@ class ImagePredection(APIView):
                     dummy
                     """
                     temp = ["Positive", "Negative", "Grade 1", "Grade 2", "Grade 3"]
-                    test_rle = random.randint(0, 1024)
-                    result = {'result': random.choice(temp)}
+                    result_length = random.randint(0, 1024)
+                    result = random.choice(temp)
                     """
                     dummy ends
                     """
-                    image_name = {'image_name': unique_filename}
-                    # result_length = {'result_length': len(test_rle)}
-                    result_length = {'result_length': test_rle}
-                    request_mode = {'mode': 'autoscope'}
-                    request.data.pop('image')
-                    request.data._mutable = True
-                    request_image_name = image_name
-                    request_length = result_length
-                    request_user = user_id
-                    request_patient_id = patient_id
-                    request_test_type = test_type
-                    request.data.update(request_image_name)
-                    request.data.update(request_mode)
-                    request.data.update(request_length)
-                    request.data.update(result)
-                    request.data.update(request_test_type)
-                    request.data.update(request_patient_id)
-                    request.data.update(request_user)
+                    flag, negative = True, True
+                    for image_name in images:
+                        modified_data = self.modify_input_for_multiple_files(image_name, result_length, result,
+                                                                             last_sample_id)
+                        print(modified_data)
+                        serializer_class = ImageDataSerializer(data=modified_data)
+                        if serializer_class.is_valid():
+                            if modified_data['result'] != 'Negative':
+                                SampleData.objects.filter(id=last_sample_id).update(
+                                    result=modified_data['result'])
+                                negative = True
+                            serializer_class.save()
+                        else:
+                            flag = False
 
-                    serializer_class = PredictionSerializer(data=request.data)
-                    if serializer_class.is_valid():
-                        serializer_class.save()
+                    if flag == True:
+                        if negative == False:
+                            SampleData.objects.filter(id=last_sample_id).update(
+                                result='Negative')
                         return Response({"status": True, "msg": "Successfully uploaded sample"},
                                         status=status.HTTP_200_OK)
-                    return Response(serializer_class.errors, status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        return Response(serializer_class.errors, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     return Response({"status": False, "msg": "Disease name Not Exist"})
             else:
@@ -192,7 +189,7 @@ class ImagePredection(APIView):
                     request.data.update(request_patient_id)
                     request.data.update(request_user)
 
-                    serializer_class = PredictionSerializer(data=request.data)
+                    serializer_class = SampleDataSerializer(data=request.data)
                     if serializer_class.is_valid():
                         serializer_class.save()
                         return Response({"status": True, "msg": "Successfully uploaded sample"},
