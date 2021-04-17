@@ -7,7 +7,7 @@ sio = socketio.Client()
 sio.connect('http://127.0.0.1:5001/')
 
 # from . import wsgi_app
-imageHub = imagezmq.ImageHub(open_port='tcp://127.0.0.1:5555')
+imageHub = imagezmq.ImageHub(open_port='tcp://68.183.88.216:5555')
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 out = cv2.VideoWriter('output1.avi', fourcc, 12.0, (320, 240))
 sio.sleep(1.0)
