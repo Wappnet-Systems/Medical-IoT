@@ -94,7 +94,7 @@ class ImagePredection(APIView):
                     if serializer_class.is_valid():
                         serializer_class.save()
                         last_sample_id = SampleData.objects.filter(mode=request.data['mode'], test_type=test_type,
-                                                                   patient_id=patient_id, user_id=user_id)[0].id
+                                                                   patient_id=patient_id, user_id=user_id).last().id
                     else:
                         return Response(serializer_class.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -120,32 +120,33 @@ class ImagePredection(APIView):
                     # test_rle = list(imgobj.prob_to_rles(preds_test_upsampled))
                     # print(len(test_rle))
 
-                    """
-                    dummy
-                    """
-                    temp = ["Positive", "Negative", "Grade 1", "Grade 2", "Grade 3"]
-                    result_length = random.randint(0, 1024)
-                    result = random.choice(temp)
-                    """
-                    dummy ends
-                    """
                     flag, negative = True, True
                     for image_name in images:
+                        """
+                        dummy
+                        """
+                        temp = ["Positive", "Negative", "Grade 1", "Grade 2", "Grade 3"]
+                        result_length = random.randint(0, 1024)
+                        result = random.choice(temp)
+                        """
+                        dummy ends
+                        """
                         modified_data = self.modify_input_for_multiple_files(image_name, result_length, result,
                                                                              last_sample_id)
-                        print(modified_data)
                         serializer_class = ImageDataSerializer(data=modified_data)
                         if serializer_class.is_valid():
                             if modified_data['result'] != 'Negative':
+                                print('here')
+                                print(last_sample_id)
                                 SampleData.objects.filter(id=last_sample_id).update(
                                     result=modified_data['result'])
-                                negative = True
+                                negative = False
                             serializer_class.save()
                         else:
                             flag = False
 
                     if flag == True:
-                        if negative == False:
+                        if negative == True:
                             SampleData.objects.filter(id=last_sample_id).update(
                                 result='Negative')
                         return Response({"status": True, "msg": "Successfully uploaded sample"},
