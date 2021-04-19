@@ -62,6 +62,9 @@ class Patientoperator(models.Model):
     def __str__(self):
         return "{}  {}  {}".format(self.patient_id, self.operator_id, self.status)
 
+    def operator(self):
+        return self.operator_id.first_name + ' ' + self.operator_id.last_name
+
     def patient(self):
         patient = [
             {

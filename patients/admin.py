@@ -13,8 +13,8 @@ class PatientDetail(admin.ModelAdmin):
 
 
 class PatientoperatorDetail(admin.ModelAdmin):
-    list_display = ('patient_id', 'operator_id', 'status')
-    search_fields = ('patient_id__patient_full_name', 'operator_id__username')
+    list_display = ('patient_id', 'operator', 'status')
+    search_fields = ('patient_id__patient_full_name', 'operator_id__first_name', 'operator_id__last_name')
     list_editable = ('status',)
     list_filter = ('status',)
 

@@ -34,6 +34,9 @@ class operatorDevices(models.Model):
 
     def __str__(self):
         return '{}'.format(self.device_id.iot_device_name)
+    
+    def operator(self):
+        return self.operator_id.first_name + ' ' + self.operator_id.last_name
 
     def device(self):
         device = [

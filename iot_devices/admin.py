@@ -48,8 +48,8 @@ class DeviceDetail(admin.ModelAdmin):
 
 
 class OperatordeviceDetail(admin.ModelAdmin):
-    list_display = ['device_id', 'operator_id']
-    search_fields = ('device_id__device_id', 'operator_id__username')
+    list_display = ['device_id', 'operator']
+    search_fields = ('device_id__device_id', 'operator_id__first_name', 'operator_id__last_name')
 
     def response_add(self, request, obj, post_url_continue=None):
         msg = "Device {} is assign sucessfully to operator".format(obj.device_id)
@@ -60,14 +60,11 @@ class OperatordeviceDetail(admin.ModelAdmin):
         msg = "sucessfully updated".format(obj.device_id)
         self.message_user(request, msg, level=messages.SUCCESS)
         return self.response_post_save_add(request, obj)
-
+    
     def has_add_permission(self, request, obj=None):
         return False
 
     def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
         return False
 
 
