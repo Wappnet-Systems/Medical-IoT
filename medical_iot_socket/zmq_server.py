@@ -4,7 +4,7 @@ import cv2
 import base64
 
 sio = socketio.Client()
-sio.connect('http://127.0.0.1:5001/')
+sio.connect('http://68.183.88.216:5001/')
 
 # from . import wsgi_app
 imageHub = imagezmq.ImageHub(open_port='tcp://68.183.88.216:5555')
