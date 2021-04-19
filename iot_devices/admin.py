@@ -60,11 +60,14 @@ class OperatordeviceDetail(admin.ModelAdmin):
         msg = "sucessfully updated".format(obj.device_id)
         self.message_user(request, msg, level=messages.SUCCESS)
         return self.response_post_save_add(request, obj)
-    
+
     def has_add_permission(self, request, obj=None):
         return False
 
     def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
         return False
 
 
