@@ -32,6 +32,9 @@ class SampleData(models.Model):
     def operator(self):
         return self.user_id.first_name + ' ' + self.user_id.last_name
 
+    def patient(self):
+        return self.patient_id.patient_full_name
+
     def testdetail(self):
         date_time_obj = datetime.datetime.strptime(str(self.created_at).split('+')[0], '%Y-%m-%d %H:%M:%S.%f')
         date = date_time_obj.date()
@@ -78,3 +81,6 @@ class ImageData(models.Model):
 
     def img(self):
         return "%s" % (str(self.image_name)[57:])
+
+    def patient(self):
+        return self.sample_data_id.patient_id.patient_full_name

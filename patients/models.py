@@ -1,7 +1,8 @@
-from django.contrib.auth.models import User
-from django.db import models
-from django.core.exceptions import ValidationError
 import re
+
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.db import models
 
 
 def validate_email(email):
@@ -64,6 +65,9 @@ class Patientoperator(models.Model):
 
     def operator(self):
         return self.operator_id.first_name + ' ' + self.operator_id.last_name
+
+    def patientname(self):
+        return self.patient_id.patient_full_name
 
     def patient(self):
         patient = [
